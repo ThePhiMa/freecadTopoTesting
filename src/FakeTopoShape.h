@@ -56,8 +56,8 @@ class TopoShape{
     //private:
         TopoNamingHelper _TopoNamer;
         TopoDS_Shape _Shape;
-        std::vector<TopoDS_Face> getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
+        std::vector<TopoData::TrackedData<TopoDS_Face>> getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
         TopTools_ListOfShape getBoxFaces(BRepPrimAPI_MakeBox mkBox) const;
-        FilletData getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
+        TopoData getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
 };
 #endif /* ifndef FAKE_TOPO_SHAPE_H */

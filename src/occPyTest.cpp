@@ -1055,7 +1055,7 @@ void runTestMkFillet(){
 int main(){
     //runCase1();
     //runCase2();
-    //runCase3();
+    runCase3();
     //runCase4();
     //runCase5();
     //runLookAtSelectionNodeCase();
