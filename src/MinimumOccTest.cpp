@@ -42,6 +42,7 @@
 #include <TDF_IDFilter.hxx>
 #include <TNaming_UsedShapes.hxx>
 #include <TDF_Tool.hxx>
+#include <TNaming_Selector.hxx>
 
 
 void ExportTopoShapeAsSTEP(TopoDS_Shape source, Standard_CString fileName)
@@ -124,170 +125,235 @@ const TopoShape& Part::getShape() const{
     return _Shape;
 }
 
-void TestResizeBox(){
-    Part BoxPart;
-    Part FilletPart;
+void TestResizeBox()
+{   
 
-    TopoShape BoxShape = BoxPart.getShape();
-
-    // initial box
+// initial box creation
     std::clog << "------------------------------" << std::endl;
     std::clog << "Creating box" << std::endl;
     std::clog << "------------------------------" << std::endl;
+    
+    Part BoxPart;
+    TopoShape BoxShape = BoxPart.getShape();
+
     BoxData BData(10., 10., 10.);
     BoxShape.createBox(BData);
     //BoxShape._TopoNamer.DeepDump();
-    BoxPart.setShape(BoxShape);
+    //BoxPart.setShape(BoxShape);
+
+    // Select the edge
+    TDF_Label SelectedLabel = BoxShape._TopoNamer.GetSelectionLabel(); //TDF_TagSource::NewChild(BoxShape._TopoNamer.GetSelectionLabel());
+    if (SelectedLabel.IsNull())
+        std::clog << "\x1B[31m-->Selected label is null!\033[0m" << std::endl;
+    TNaming_Selector SelectionBuilder(SelectedLabel);
+
+    int EdgeToFilletID = 3;
+
+    TopoDS_Edge edgeShape = BoxShape.selectEdge(EdgeToFilletID, &SelectionBuilder, &SelectedLabel);    
 
     ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("0_BaseShape.step"));
-
-    // initial fillet
-    std::clog << "------------------------------" << std::endl;
-    std::clog << "Init fillet" << std::endl;
-    std::clog << "------------------------------" << std::endl;
-
-    // First set the BaseShape
-    TopoShape FilletShape = FilletPart.getShape();
+    
     std::clog << "Duming history after init creation" << std::endl;
     std::clog << BoxShape.getTopoHelper().DeepDump() << std::endl;
-    
-    //FilletShape.createFilletBaseShape(BoxPart.getShape());        
 
-    // Next, gather the fillet data
+    //TopoDS_Edge testSolve = BoxShape._TopoNamer.GetSelectedEdge(nullptr, &SelectionBuilder, &SelectedLabel);
+
+    //std::clog << "Is the selected edge null? " << (testSolve.IsNull() == true) << std::endl;
+
+ // initial fillet on first box
+    std::clog << std::endl;
     std::clog << "------------------------------" << std::endl;
-    std::clog << "Gather fillet data" << std::endl;
-    std::clog << "------------------------------" << std::endl;
+    std::clog << "Initial fillet" << std::endl;
+    std::clog << "------------------------------" << std::endl;    
+    
+    Part FilletPart;
+    TopoShape FilletShape = FilletPart.getShape();
+    //FilletShape.setShape(BoxShape);
+
     std::vector<FilletElement> FDatas;
     FilletElement FData;
-    // Don't forget to select the appropriate Edge
-    //FData.edgetag = FilletShape.selectEdge(8);
-    //FData.edgeid  = 8;
+    FData.edgeid = EdgeToFilletID;
+    FData.selectedEdge = &edgeShape;
+    FData.radius1 = 1.;
+    FData.radius2 = 1.;
+    FData.selector = &SelectionBuilder;
+    FData.selectionlabel = &SelectedLabel;
+    FDatas.push_back(FData);
+
+    //FData.edgeid = 6;
     //FData.radius1 = 1.;
     //FData.radius2 = 1.;
     //FDatas.push_back(FData);
 
-    //FData.edgetag = FilletShape.selectEdge(4);
-    //FData.edgeid = 4;
-    //FData.radius1 = 1.;
-    //FData.radius2 = 1.;
-    //FDatas.push_back(FData);
+    //std::clog << "Duming history of box before shallow copy" << std::endl;
+    //std::clog << BoxShape.getTopoHelper().DeepDump() << std::endl;
 
-    // finally, create the Fillet
-    //std::clog << "------------------------------" << std::endl;
-    //std::clog << "Creating fillet" << std::endl;
-    //std::clog << "------------------------------" << std::endl;
-    //BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(BoxPart.getShape(), FDatas);
-    //std::clog << "------------------------------" << std::endl;
-    //std::clog << "Set fillet shape" << std::endl;
-    //std::clog << "------------------------------" << std::endl;
-    //FilletPart.setShape(FilletShape);
-    //
-    //std::clog << "Dumping history after fillet" << std::endl;
-    //std::clog << FilletShape.getTopoHelper().DeepDump();
-    //
-    //ExportTopoShapeAsSTEP(FilletShape.getShape(), Standard_CString("1_FilletedShape.step"));
+    FilletShape.setShape(BoxShape);
+    FilletShape.CreateShallowFilletBaseShape(BoxShape.getShape());
 
-    // taller box
+    std::clog << "Duming history of box after shallow copy" << std::endl;
+    std::clog << FilletShape.getTopoHelper().DeepDump() << std::endl;    
+
+    BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(FilletShape.getShape(), FDatas);
+
+    //BoxShape.setShape(mkFillet.Shape());
+    
+    std::clog << "Dumping history after initial fillet" << std::endl;
+    std::clog << FilletShape.getTopoHelper().DeepDump();
+    
+    ExportTopoShapeAsSTEP(FilletShape.getShape(), Standard_CString("1_FilletedShape.step"));
+
+// taller box, changing the original box
+    std::clog << std::endl;
     std::clog << "------------------------------" << std::endl;
     std::clog << "Updating box" << std::endl;
     std::clog << "------------------------------" << std::endl;
     BData.Height = 15.;
-    BoxShape.updateBox(BData);
-    BoxPart.setShape(BoxShape);
 
-    std::clog << "Dumping history after height update" << std::endl;
-    std::clog << BoxShape.getTopoHelper().DeepDump();
+    //FilletShape.updateBox(BData);
 
-    ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("2_TallerShape.step"));
-
-    Part BoxPart2;
-    Part FilletPart2;
-    TopoShape BoxShape2 = BoxPart2.getShape();
-    BoxData BData2(10., 10., 15.);
-    BoxShape2.createBox(BData2);    
-    BoxPart2.setShape(BoxShape2);
-
-    ExportTopoShapeAsSTEP(BoxShape2.getShape(), Standard_CString("2_LargerShape.step"));
-
-    FilletShape.createFilletBaseShape(BoxShape.getShape());
-    // Don't forget to select the appropriate Edge
-    FData.edgetag = FilletShape.selectEdge(8);
-    FData.edgeid = 8;
-    FData.radius1 = 1.;
-    FData.radius2 = 1.;
-    FDatas.push_back(FData);
-
-    FData.edgetag = FilletShape.selectEdge(4);
-    FData.edgeid = 4;
-    FData.radius1 = 1.;
-    FData.radius2 = 1.;
-    FDatas.push_back(FData);
-
-    //std::clog << "Dumping history after updateBox" << std::endl;
-    //std::clog << BoxShape2.getTopoHelper().DeepDump();
-
-    //BoxPart.setShape(BoxShape.getShape());
-    //ExportTopoShapeAsSTEP(BoxShape2.getShape(), Standard_CString("2_TallerShape_Check.step"));
- 
-    ////// rebuild fillet
-    std::clog << "------------------------------" << std::endl;
-    std::clog << "creating fillet" << std::endl;
-    std::clog << "------------------------------" << std::endl;
-    //FData.edgetag = FilletShape.selectEdge(9);
-    //FData.edgeid = 9;
-    //FData.radius1 = 1.5;
-    //FData.radius2 = 1.5;
-    //FDatas.clear();
-    //FDatas.push_back(FData);
-    
-    BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(BoxPart.getShape(), FDatas);
-    //FilletShape.updateFillet(BoxShape, FDatas);
-    //std::clog << "Dumping history after updateFillet" << std::endl;
-    //std::clog << FilletShape.getTopoHelper().DeepDump();
-
-    ExportTopoShapeAsSTEP(FilletShape.getShape(), Standard_CString("3_CreateFilletShape.step"));
-
-    std::clog << "------------------------------" << std::endl;
-    std::clog << "resize again, after fillet" << std::endl;
-    std::clog << "------------------------------" << std::endl;
-
-    BData.Width = 20.;
-    BoxShape.updateBox(BData);
+    //BoxShape.updateBox(BData);
     //BoxPart.setShape(BoxShape);
+    //
+    //std::clog << "Dumping history after height update" << std::endl;
+    //std::clog << BoxShape.getTopoHelper().DeepDump();
+    //
+    //std::clog << "Exporting taller box shape..." << std::endl;
+    //ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("2_TallerFilletedShape.step"));
 
-    std::clog << "Dumping history after second height update" << std::endl;
-    std::clog << BoxShape.getTopoHelper().DeepDump();
+    Part BoxPart2;    
+    TopoShape BoxShape2 = BoxPart2.getShape();
+    BoxData BData2(15., 10., 10.);
+    BoxShape2.setShape(BoxShape);
+    BoxShape2.updateBox(BData2);     
 
-    ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("4_ResizedShapeTaller.step"));
+    //BoxShape.updateBox(BData2);
 
+    std::clog << "Dumping history after height update (or: a new box)" << std::endl;
+    std::clog << BoxShape2.getTopoHelper().DeepDump();
+
+    std::clog << "Exporting wider box shape..." << std::endl;
+    ExportTopoShapeAsSTEP(BoxShape2.getShape(), Standard_CString("2_TallerShape.step"));        
+    
+// Test edge selection
+    std::clog << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //std::clog << "Selecting saved edge on new box" << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //
+    //TopoDS_Edge testSolve = BoxShape2._TopoNamer.GetSelectedEdge(nullptr, &SelectionBuilder, &SelectedLabel);
+    //std::clog << "Is the selected edge null? " << (testSolve.IsNull() == true) << std::endl;
+
+// rebuild fillet on new box with selected edge
+    std::clog << std::endl;
     std::clog << "------------------------------" << std::endl;
-    std::clog << "fillet resized box" << std::endl;
+    std::clog << "Refilletting Edge" << std::endl;
     std::clog << "------------------------------" << std::endl;
-
+    
+    Part FilletPart2;
     TopoShape FilletShape2 = FilletPart2.getShape();
-    FilletShape2.createFilletBaseShape(BoxShape.getShape());
-    // Don't forget to select the appropriate Edge
-    FData.edgetag = FilletShape2.selectEdge(8);
-    FData.edgeid = 8;
-    FData.radius1 = 1.;
-    FData.radius2 = 1.;
-    FDatas.push_back(FData);
+    
+    //FilletShape2.createFilletBaseShape(BoxShape2.getShape());
 
-    FData.edgetag = FilletShape2.selectEdge(4);
-    FData.edgeid = 4;
-    FData.radius1 = 1.;
-    FData.radius2 = 1.;
-    FDatas.push_back(FData);
+    FilletShape2.setShape(FilletShape);
+    FilletShape2.setShape(BoxShape2.getShape());
+    FilletShape2.CreateShallowFilletBaseShape(BoxShape2.getShape());    
 
-    FilletShape2.updateFillet(BoxShape, FDatas);
+    //testSolve = FilletShape2._TopoNamer.GetSelectedEdge(nullptr, &SelectionBuilder, &SelectedLabel);
+    
+    std::vector<FilletElement> FDatas2;
+    FilletElement FData2;
+    FData2.edgeid = EdgeToFilletID;
+    FData2.selectedEdge = &edgeShape;
+    FData2.radius1 = 1.;
+    FData2.radius2 = 1.;
+    FData2.selector = &SelectionBuilder;
+    FData2.selectionlabel = &SelectedLabel;
+    FDatas2.push_back(FData2);
 
-    std::clog << "Dumping history after fillet on resize" << std::endl;
+    std::clog << "Dumping history after fillet shape init but before update fillet 2" << std::endl;
+    std::clog << FilletShape2.getTopoHelper().DeepDump();
+    
+    BRepFilletAPI_MakeFillet mkFillet2 = FilletShape2.updateFillet2(BoxShape2.getShape(), FDatas2);
+    ExportTopoShapeAsSTEP(FilletShape2.getShape(), Standard_CString("3_Re-FilletedShape.step"));
+
+    std::clog << "Dumping history after before update fillet 2" << std::endl;
     std::clog << FilletShape2.getTopoHelper().DeepDump();
 
-    ExportTopoShapeAsSTEP(FilletShape2.getShape(), Standard_CString("5_FilletOnResizedShape.step"));
+    return;
 
-    std::clog << "------------------------------" << std::endl;
-    std::clog << "Finished" << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //std::clog << "Resize again, without fillet" << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //
+    //BData.Width = 20.;
+    //BoxShape.updateBox(BData);
+    //BoxPart.setShape(BoxShape);
+    //
+    //std::clog << "Dumping history after second height update" << std::endl;
+    //std::clog << BoxShape.getTopoHelper().DeepDump();
+    //
+    //ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("4_ResizedShapeTaller.step"));
+    //
+    //std::clog << "------------------------------" << std::endl;
+    //std::clog << "Fillet resized box" << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //
+    //TopoShape FilletShape2 = FilletPart2.getShape();
+    //FilletShape2.createFilletBaseShape(BoxShape.getShape());
+    //// Don't forget to select the appropriate Edge
+    //FData.edgetag = FilletShape2.selectEdge(8);
+    //FData.edgeid = 8;
+    //FData.radius1 = 1.;
+    //FData.radius2 = 1.;
+    //FDatas.push_back(FData);
+    //
+    //FData.edgetag = FilletShape2.selectEdge(4);
+    //FData.edgeid = 4;
+    //FData.radius1 = 1.;
+    //FData.radius2 = 1.;
+    //FDatas.push_back(FData);
+    //
+    //FilletShape2.updateFillet(BoxShape, FDatas);
+    //
+    //std::clog << "Dumping history after fillet on resize" << std::endl;
+    //std::clog << FilletShape2.getTopoHelper().DeepDump();
+    //
+    //ExportTopoShapeAsSTEP(FilletShape2.getShape(), Standard_CString("5_FilletOnResizedShape.step"));
+    //
+    //std::clog << "------------------------------" << std::endl;
+    //std::clog << "Get box before fillet from tdf tree" << std::endl;
+    //std::clog << "------------------------------" << std::endl;
+    //
+    //// Get box and all child nodes
+    ////std::clog << "Get box and all child nodes " << std::endl;
+    ////TDF_LabelMap boxLabelMap = FilletShape2.getTopoHelper().GetAllNodesFrom("0:2:");
+    ////// Get all fillet nodes
+    ////std::clog << "Get all fillet nodes " << std::endl;
+    ////TDF_LabelMap filletLabelMap = FilletShape2.getTopoHelper().GetAllNodesFrom("0:3");
+    ////TDF_LabelMap combinedLabelMap;
+    ////combinedLabelMap.Union(boxLabelMap, filletLabelMap);
+    //
+    //Part FilletPart3;
+    //TopoShape FilletShape3 = FilletPart3.getShape();
+    //FilletShape3.createFilletBaseShape(FilletShape2.getShape());
+    //FDatas.clear();
+    //FData.edgetag = FilletShape3.selectEdge(4);
+    //FData.edgeid = 4;
+    //FData.radius1 = 1.5;
+    //FData.radius2 = 1.5;
+    ////FData.labelMap = &combinedLabelMap;
+    //FDatas.push_back(FData);
+    //
+    //FilletShape3.updateFillet(FilletShape2, FDatas);
+    //
+    //ExportTopoShapeAsSTEP(FilletShape3.getShape(), Standard_CString("6_TFD_FilletShape.step"));
+    //
+    //std::clog << "Dumping history after re-filleting" << std::endl;
+    //std::clog << FilletShape3.getTopoHelper().DeepDump();
+    //
+    //std::clog << "------------------------------" << std::endl;
+    //std::clog << "Finished" << std::endl;
 }
 
 void runCase3()

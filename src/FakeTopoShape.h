@@ -19,8 +19,11 @@
 #include <TopoDS_Shape.hxx>
 #include <TopoNamingHelper.h>
 #include <TopoNamingData.h>
+#include <TDF_LabelMap.hxx>
+#include <TNaming_Selector.hxx>
 
-struct FilletElement {
+struct FilletElement
+{
     FilletElement(){}
     FilletElement(int id, double rad1, double rad2){
         edgeid = id;
@@ -29,8 +32,24 @@ struct FilletElement {
     }
     int edgeid;
     double radius1, radius2;
-    std::string edgetag;
+    //std::string edgetag;
+    TDF_LabelMap* labelMap = nullptr;
+    TDF_Label* selectionlabel = nullptr;
+    TNaming_Selector* selector = nullptr;
+    TopoDS_Edge* selectedEdge = nullptr;
 };
+
+//struct SelectionElement
+//{
+//    SelectionElement() {}
+//    SelectionElement(TDF_Label selectionNode)
+//    {
+//        selectionLabel = &TDF_TagSource::NewChild(selectionNode);
+//        selector = &(TNaming_Selector(*selectionLabel));
+//    }
+//    TDF_Label* selectionLabel;
+//    TNaming_Selector* selector;    
+//};
 
 class TopoShape{
     public:
@@ -44,14 +63,18 @@ class TopoShape{
         void createBox(const BoxData& BData);
         void updateBox(const BoxData& BData);
         void createFilletBaseShape(const TopoShape& BaseShape);
+        void CreateShallowFilletBaseShape(const TopoShape& BaseShape);
         BRepFilletAPI_MakeFillet createFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
         BRepFilletAPI_MakeFillet updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+        BRepFilletAPI_MakeFillet updateFillet2(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
 
         void setShape(const TopoDS_Shape& shape);
         void setShape(const TopoShape& shape);
         TopoDS_Shape getShape() const;
+        TopoDS_Shape getNonConstShape();
         TopoNamingHelper getTopoHelper() const;
         std::string selectEdge(const int edgeID);
+        TopoDS_Edge selectEdge(const int edgeID, TNaming_Selector* selector, TDF_Label* selectionLabel);
 
     //private:
         TopoNamingHelper _TopoNamer;
