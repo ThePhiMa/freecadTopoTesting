@@ -32,7 +32,7 @@ struct FilletElement
     }
     int edgeid;
     double radius1, radius2;
-    //std::string edgetag;
+    std::string edgeTag;
     TDF_LabelMap* labelMap = nullptr;
     TDF_Label* selectionlabel = nullptr;
     TNaming_Selector* selector = nullptr;
@@ -74,13 +74,13 @@ class TopoShape{
         TopoDS_Shape getNonConstShape();
         TopoNamingHelper getTopoHelper() const;
         std::string selectEdge(const int edgeID);
-        TopoDS_Edge selectEdge(const int edgeID, TNaming_Selector* selector, TDF_Label* selectionLabel);
+        std::string selectEdge(const int edgeID, TNaming_Selector& selector, TDF_Label& selectionLabel);
 
     //private:
         TopoNamingHelper _TopoNamer;
         TopoDS_Shape _Shape;
-        std::vector<TopoData::TrackedData<TopoDS_Face>> getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
+        std::vector<TopoDS_Face> getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
         TopTools_ListOfShape getBoxFaces(BRepPrimAPI_MakeBox mkBox) const;
-        TopoData getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
+        FilletData getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
 };
 #endif /* ifndef FAKE_TOPO_SHAPE_H */
