@@ -144,6 +144,28 @@ void TopoShape::createFilletBaseShape(const TopoShape& BaseShape) {
 	this->setShape(BaseShape.getShape());
 }
 
+void TopoShape::createFilletBaseShape2(const TopoShape& BaseShape) {
+	// Node 2
+	this->_TopoNamer.AddNode("BaseShapes");
+	// Node 3
+	this->_TopoNamer.AddNode("FilletShapes");
+
+	// Collect and track appropriate data
+	TopoData TData;
+
+	TopTools_IndexedMapOfShape faces;
+	// TODO need to handle possible seam edges
+	TopExp::MapShapes(BaseShape.getShape(), TopAbs_FACE, faces);
+	for (int i = 1; i <= faces.Extent(); i++) {
+		TopoDS_Face face = TopoDS::Face(faces.FindKey(i));
+		TData.GeneratedFaces.push_back(face);
+	}
+
+	TData.NewShape = BaseShape.getShape();
+	this->_TopoNamer.TrackGeneratedShape(this->_TopoNamer.GetNode(2), TData.NewShape, TData, "Generated Base Shape");
+	this->setShape(BaseShape.getShape());
+}
+
 BRepFilletAPI_MakeFillet TopoShape::createFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas) {
 	// Make the fillets. NOTE: the edges should have already been 'selected' by
 	// calling TopoShape::selectEdge(s) by the caller.
@@ -168,29 +190,50 @@ BRepFilletAPI_MakeFillet TopoShape::createFillet(const TopoShape& BaseShape, con
 
 BRepFilletAPI_MakeFillet TopoShape::updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas) {
 	// Update the BaseShape topo history as appropriate
-	this->_TopoNamer.AppendTopoHistorySimple("0:2", BaseShape.getTopoHelper());
+	//this->_TopoNamer.AppendTopoHistorySimple("0:2", BaseShape.getTopoHelper());
 	//std::clog << "-----Dumping after Append" << std::endl;
 	//std::clog << this->_TopoNamer.DeepDump();
 	//std::clog << this->_TopoNamer.DFDump();
 
 	// Make the fillets. NOTE: the edges should have already been 'selected' by
 	// calling TopoShape::selectEdge(s) by the caller.
-	TopoDS_Shape localBaseShape = this->_TopoNamer.GetNodeShape("0:2");
-	BRepFilletAPI_MakeFillet mkFillet(localBaseShape);
+
+	std::clog << "Update fillet 0" << std::endl;
+
+	//TopoDS_Shape localBaseShape = this->_TopoNamer.GetNodeShape("0:2");
+	//BRepFilletAPI_MakeFillet mkFillet(localBaseShape);
+	BRepFilletAPI_MakeFillet mkFillet(BaseShape.getShape());
+
+	std::clog << "Update fillet 1" << std::endl;
 
 	for (auto&& FData : FDatas) {
 		TopoDS_Edge edge = this->_TopoNamer.GetSelectedEdge(FData.edgeTag);
 		mkFillet.Add(FData.radius1, FData.radius2, edge);
 	}
 
+	std::clog << "Update fillet 2" << std::endl;
+
 	mkFillet.Build();
+
+	std::clog << "Update fillet 3" << std::endl;
 
 	FilletData TFData = this->getFilletData(BaseShape, mkFillet);
 
+	std::clog << "Update fillet 4" << std::endl;
+
 	TFData.OldShape = this->getShape();
 	TFData.NewShape = mkFillet.Shape();
+
+	std::clog << "Update fillet 5" << std::endl;
+
 	this->_TopoNamer.TrackModifiedShape(this->_TopoNamer.GetNode(3), TFData.NewShape, TFData, "Filleted Shape");
+
+	std::clog << "Update fillet 6" << std::endl;
+
 	this->setShape(mkFillet.Shape());
+
+	std::clog << "Update fillet 7" << std::endl;
+
 	//std::clog << "-----Dumping topohistory after updateFillet" << std::endl;
 	//std::clog << this->_TopoNamer.DeepDump() << std::endl;
 	return mkFillet;

@@ -132,7 +132,6 @@ const TopoShape& Part::getShape() const{
 void TestResizeBox()
 {   
     Part BoxPart;
-    Part FilletPart;
 
     TopoShape BoxShape = BoxPart.getShape();
 
@@ -145,8 +144,12 @@ void TestResizeBox()
     //BoxShape._TopoNamer.DeepDump();
     BoxPart.setShape(BoxShape);
 
+    TopoDS_Shape originalBox = BoxShape.getShape();
+
     std::clog << "Dumping history after first box" << std::endl;
     std::clog << BoxShape.getTopoHelper().DeepDump2();
+
+    ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("0_InitialBox.step"));
 
     std::clog << std::endl;
     std::clog << "------------------------------" << std::endl;
@@ -156,10 +159,14 @@ void TestResizeBox()
     TDF_Label edgeSelection = TDF_TagSource::NewChild(selectionNode);
     TNaming_Selector selector(edgeSelection);
 
-    std::string selectedEdge = BoxShape.selectEdge(3, selector, edgeSelection);
+    int selectedEdgeID = 8;
+
+    std::string selectedEdge = BoxShape.selectEdge(selectedEdgeID, selector, edgeSelection);
 
     std::clog << "Dumping history after edge selection" << std::endl;
     std::clog << BoxShape.getTopoHelper().DeepDump2();
+
+    //ExportTopoShapeAsSTEP(selectedEdge, Standard_CString("1_SelectedEdge.step"));
 
     // initial fillet
     std::clog << std::endl;
@@ -168,7 +175,9 @@ void TestResizeBox()
     std::clog << "------------------------------" << std::endl;
 
     // First set the BaseShape
-    TopoShape FilletShape = FilletPart.getShape();
+    Part FilletPart;
+    TopoShape FilletShape = FilletPart.getShape();      // Is this needed if I just equalize it on the line after?
+    FilletShape = BoxShape;
     std::clog << "dumping" << std::endl;
     std::clog << FilletShape.getTopoHelper().DeepDump2() << std::endl;
     FilletShape.createFilletBaseShape(BoxPart.getShape());    
@@ -178,14 +187,16 @@ void TestResizeBox()
     FilletElement FData;
     // Don't forget to select the appropriate Edge
     FData.edgeTag = selectedEdge;
-    FData.edgeid = 3;
+    FData.edgeid = selectedEdgeID;
     FData.radius1 = 1.;
     FData.radius2 = 1.;
     FDatas.push_back(FData);
 
-    //// finally, create the Fillet
-    //BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(BoxPart.getShape(), FDatas);
-    //FilletPart.setShape(FilletShape);
+    // finally, create the Fillet
+    BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(BoxPart.getShape(), FDatas);
+    FilletPart.setShape(FilletShape);
+
+    ExportTopoShapeAsSTEP(FilletShape.getShape(), Standard_CString("1_FirstFillet.step"));
 
     std::clog << "Dumping history after fillet" << std::endl;
     std::clog << FilletShape.getTopoHelper().DeepDump2();
@@ -201,14 +212,26 @@ void TestResizeBox()
     std::clog << "Dumping history after updateBox" << std::endl;
     std::clog << BoxShape.getTopoHelper().DeepDump2();
 
+    ExportTopoShapeAsSTEP(BoxShape.getShape(), Standard_CString("2_RebuildBox.step"));
+
     //// rebuild fillet
     std::clog << std::endl;
     std::clog << "------------------------------" << std::endl;
     std::clog << "rebuilding fillet" << std::endl;
     std::clog << "------------------------------" << std::endl;
-    FilletShape.updateFillet(BoxShape, FDatas);
+
+    Part FilletPart2;
+    TopoShape FilletShape2 = FilletPart2.getShape();        // Is this needed if I just equalize it on the line after?
+    FilletShape2 = BoxShape;
+    std::clog << "dumping" << std::endl;
+    std::clog << FilletShape2.getTopoHelper().DeepDump2() << std::endl;
+    //FilletShape2.createFilletBaseShape2(BoxPart.getShape());
+
+    FilletShape2.updateFillet(BoxShape, FDatas);
     std::clog << "Dumping history after updateFillet" << std::endl;
-    std::clog << FilletShape.getTopoHelper().DeepDump2();
+    std::clog << FilletShape2.getTopoHelper().DeepDump2();
+
+    ExportTopoShapeAsSTEP(FilletShape2.getShape(), Standard_CString("3_ModifiedFillet.step"));
 }
 
 void runCase3()
