@@ -178,8 +178,8 @@ void TestResizeBox()
     Part FilletPart;
     TopoShape FilletShape = FilletPart.getShape();      // Is this needed if I just equalize it on the line after?
     FilletShape = BoxShape;
-    std::clog << "dumping" << std::endl;
-    std::clog << FilletShape.getTopoHelper().DeepDump2() << std::endl;
+    //std::clog << "dumping" << std::endl;
+    //std::clog << FilletShape.getTopoHelper().DeepDump2() << std::endl;
     FilletShape.createFilletBaseShape(BoxPart.getShape());    
 
     // Next, gather the fillet data
@@ -194,7 +194,7 @@ void TestResizeBox()
 
     // finally, create the Fillet
     BRepFilletAPI_MakeFillet mkFillet = FilletShape.createFillet(BoxPart.getShape(), FDatas);
-    FilletPart.setShape(FilletShape);
+    //FilletPart.setShape(FilletShape);
 
     ExportTopoShapeAsSTEP(FilletShape.getShape(), Standard_CString("1_FirstFillet.step"));
 

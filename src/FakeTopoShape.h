@@ -66,8 +66,8 @@ class TopoShape{
         void createFilletBaseShape2(const TopoShape& BaseShape);
         void CreateShallowFilletBaseShape(const TopoShape& BaseShape);
         BRepFilletAPI_MakeFillet createFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
-        BRepFilletAPI_MakeFillet updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
-        BRepFilletAPI_MakeFillet updateFillet2(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+        void updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+        void updateFillet2(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
 
         void setShape(const TopoDS_Shape& shape);
         void setShape(const TopoShape& shape);
