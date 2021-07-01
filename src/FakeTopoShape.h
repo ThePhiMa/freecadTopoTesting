@@ -17,71 +17,80 @@
 #ifndef FAKE_TOPO_SHAPE_H
 #define FAKE_TOPO_SHAPE_H
 #include <TopoDS_Shape.hxx>
-#include <TopoNamingHelper.h>
-#include <TopoNamingData.h>
+#include "TopoNamingHelper.h"
+#include "TopoNamingData.h"
 #include <TDF_LabelMap.hxx>
 #include <TNaming_Selector.hxx>
 
 struct FilletElement
 {
-    FilletElement(){}
-    FilletElement(int id, double rad1, double rad2){
-        edgeid = id;
-        radius1 = rad1;
-        radius2 = rad2;
-    }
-    int edgeid;
-    double radius1, radius2;
-    std::string edgeTag;
-    TDF_LabelMap* labelMap = nullptr;
-    TDF_Label* selectionlabel = nullptr;
-    TNaming_Selector* selector = nullptr;
-    TopoDS_Edge* selectedEdge = nullptr;
+	FilletElement() {}
+
+	FilletElement(int id, double rad1, double rad2)
+	{
+		edgeid = id;
+		radius1 = rad1;
+		radius2 = rad2;
+	}
+
+	int edgeid;
+	double radius1, radius2;
+	std::string edgeTag;
 };
 
-//struct SelectionElement
-//{
-//    SelectionElement() {}
-//    SelectionElement(TDF_Label selectionNode)
-//    {
-//        selectionLabel = &TDF_TagSource::NewChild(selectionNode);
-//        selector = &(TNaming_Selector(*selectionLabel));
-//    }
-//    TDF_Label* selectionLabel;
-//    TNaming_Selector* selector;    
-//};
+struct SelectionElement
+{
+    SelectionElement() {}
 
-class TopoShape{
-    public:
-        TopoShape();
-        TopoShape(const TopoDS_Shape& sh);
-        TopoShape(const TopoShape& sh);
-        ~TopoShape();
+    SelectionElement(TDF_Label selectionNode)
+    {
+        SelectedLabel = &(TDF_TagSource::NewChild(selectionNode));
+        Selector = &(TNaming_Selector(*SelectedLabel));
+    }
 
-        void operator = (const TopoShape& sh);
+	std::string SelectedLabelName;
+    TDF_Label* SelectedLabel;
+    TNaming_Selector* Selector;
+};
 
-        void createBox(const BoxData& BData);
-        void updateBox(const BoxData& BData);
-        void createFilletBaseShape(const TopoShape& BaseShape);
-        void createFilletBaseShape2(const TopoShape& BaseShape);
-        void CreateShallowFilletBaseShape(const TopoShape& BaseShape);
-        BRepFilletAPI_MakeFillet createFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
-        void updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
-        void updateFillet2(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+class TopoShape
+{
+public:
+	TopoShape();
+	TopoShape(const TopoDS_Shape& sh);
+	TopoShape(const TopoShape& sh);
+	~TopoShape();
 
-        void setShape(const TopoDS_Shape& shape);
-        void setShape(const TopoShape& shape);
-        TopoDS_Shape getShape() const;
-        TopoDS_Shape getNonConstShape();
-        TopoNamingHelper getTopoHelper() const;
-        std::string selectEdge(const int edgeID);
-        std::string selectEdge(const int edgeID, TNaming_Selector& selector, TDF_Label& selectionLabel);
+	void operator = (const TopoShape& sh);
 
-    //private:
-        TopoNamingHelper _TopoNamer;
-        TopoDS_Shape _Shape;
-        std::vector<TopoDS_Face> getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
-        TopTools_ListOfShape getBoxFaces(BRepPrimAPI_MakeBox mkBox) const;
-        FilletData getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
+	void CreateBox(const BoxData& BData);
+
+	void UpdateBox(const BoxData& BData);
+
+	void CreateFilletBaseShape(const TopoShape& BaseShape);
+
+	void CreateShallowFilletBaseShape(const TopoShape& BaseShape);
+
+	BRepFilletAPI_MakeFillet CreateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+
+	void UpdateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas);
+
+	void SetShape(const TopoDS_Shape& shape);
+	void SetShape(const TopoShape& shape);
+
+	TopoDS_Shape GetShape() const;
+	TopoDS_Shape GetNonConstShape();
+	TopoNamingHelper GetTopoHelper() const;
+
+	bool SelectEdge(const int edgeID, SelectionElement& outSelection);
+	std::string SelectEdge(const int edgeID, TNaming_Selector& selector, TDF_Label& selectionLabel);	
+
+private:
+	TopoNamingHelper _TopoNamer;
+	TopoDS_Shape _Shape;
+
+	std::vector<TopoDS_Face> GetBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const;
+	TopTools_ListOfShape GetBoxFaces(BRepPrimAPI_MakeBox mkBox) const;
+	FilletData GetFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const;
 };
 #endif /* ifndef FAKE_TOPO_SHAPE_H */

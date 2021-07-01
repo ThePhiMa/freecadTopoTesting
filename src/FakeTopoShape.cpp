@@ -31,18 +31,18 @@
 #include <iomanip>
 #include <stdexcept>
 
-TopoShape::TopoShape() {
-}
+TopoShape::TopoShape()
+{}
 
-TopoShape::TopoShape(const TopoDS_Shape& sh) : _Shape(sh) {
-}
+TopoShape::TopoShape(const TopoDS_Shape& sh) : _Shape(sh)
+{}
 
-TopoShape::TopoShape(const TopoShape& sh) : _Shape(sh.getShape()) {
-}
+TopoShape::TopoShape(const TopoShape& sh) : _Shape(sh.GetShape())
+{}
 
 
-TopoShape::~TopoShape() {
-}
+TopoShape::~TopoShape()
+{}
 
 void TopoShape::operator = (const TopoShape& sh)
 {
@@ -51,57 +51,60 @@ void TopoShape::operator = (const TopoShape& sh)
 	this->_TopoNamer = sh._TopoNamer;
 }
 
-TopoDS_Shape TopoShape::getShape() const {
+TopoDS_Shape TopoShape::GetShape() const
+{
 	return this->_Shape;
 }
 
-TopoNamingHelper TopoShape::getTopoHelper() const {
+TopoNamingHelper TopoShape::GetTopoHelper() const
+{
 	return this->_TopoNamer;
 }
 
-void TopoShape::setShape(const TopoDS_Shape& shape) {
+void TopoShape::SetShape(const TopoDS_Shape& shape)
+{
 	this->_Shape = shape;
 }
 
-void TopoShape::setShape(const TopoShape& shape) {
-	std::clog << "->->-> setShape(TopoShape) called" << std::endl;
+void TopoShape::SetShape(const TopoShape& shape)
+{
 	this->_Shape = shape._Shape;
 	this->_TopoNamer = shape._TopoNamer;
 }
 
-void TopoShape::createBox(const BoxData& BData) {
-	// Node 2
+void TopoShape::CreateBox(const BoxData& BData)
+{
 	this->_TopoNamer.AddNode("Tracked Shape");
 	TopoData TData;
 	BRepPrimAPI_MakeBox mkBox(BData.Length, BData.Width, BData.Height);
+
 	// NOTE: The order here matters, as updateBox depends on it. That's why we use
 	// `getBoxFacesVector` so that we always get the Faces in the same order.
+
 	TData.NewShape = mkBox.Shape();
-	TData.GeneratedFaces = this->getBoxFacesVector(mkBox);
+	TData.GeneratedFaces = this->GetBoxFacesVector(mkBox);
 
 	this->_TopoNamer.TrackGeneratedShape("0:2", TData.NewShape, TData, "Generated Box Node");
-	this->setShape(TData.NewShape);
+	this->SetShape(TData.NewShape);
 
 	//std::clog << "-----Dumpnig history after createBox" << std::endl;
 	//std::clog << this->_TopoNamer.DeepDump();
 }
 
-void TopoShape::updateBox(const BoxData& BData)
+void TopoShape::UpdateBox(const BoxData& BData)
 {
 	// TODO Do I need to check to ensure the Topo History is for a Box?
-	//std::clog << "----dumping tree in updateBox" << std::endl;
-	//std::clog << this->_TopoNamer.DeepDump() <<  std::endl;
+
 	TopoData TData;
 	BRepPrimAPI_MakeBox mkBox(BData.Length, BData.Width, BData.Height);
-	TData.OldShape = this->getShape();
+	TData.OldShape = this->GetShape();
 	TData.NewShape = mkBox.Shape();
 
 	TopoDS_Face origFace, newFace;
-	std::vector<TopoDS_Face> newFaces = this->getBoxFacesVector(mkBox);
+	std::vector<TopoDS_Face> newFaces = this->GetBoxFacesVector(mkBox);
 
-	//std::clog << "-----Dumping history in update box" << std::endl;
-	//std::clog << this->_TopoNamer.DeepDump();
-	for (int i = 0; i <= 5; i++) {
+	for (int i = 0; i <= 5; i++)
+	{
 		// Tag 0:2:1:1:i+1 should hold the original face. GetLatestShape returns the latest
 		// modification of this face in the Topological History
 		std::ostringstream tag;
@@ -110,41 +113,18 @@ void TopoShape::updateBox(const BoxData& BData)
 		origFace = TopoDS::Face(origShape);
 		newFace = newFaces[i];
 
-		if (!_TopoNamer.CompareTwoFaceTopologies(origFace, newFace)) {
+		if (!_TopoNamer.CompareTwoFaceTopologies(origFace, newFace))
+		{
 			TData.ModifiedFaces.push_back({ origFace, newFace });
 		}
 	}
 
 	this->_TopoNamer.TrackModifiedShape("0:2", TData.NewShape, TData, "Modified Box Node");
-	this->setShape(mkBox.Shape());
-
-	//std::clog << "-----Dumping TopoHistory after update" << std::endl;
-	//std::clog << _TopoNamer.DeepDump() << std::endl;
+	this->SetShape(mkBox.Shape());
 }
 
-void TopoShape::createFilletBaseShape(const TopoShape& BaseShape) {
-	// Node 2
-	//this->_TopoNamer.AddNode("BaseShapes");
-	// Node 3
-	//this->_TopoNamer.AddNode("FilletShapes");
-
-	// Collect and track appropriate data
-	TopoData TData;
-
-	//TopTools_IndexedMapOfShape faces;
-	//// TODO need to handle possible seam edges
-	//TopExp::MapShapes(BaseShape.getShape(), TopAbs_FACE, faces);
-	//for (int i = 1; i <= faces.Extent(); i++) {
-	//	TopoDS_Face face = TopoDS::Face(faces.FindKey(i));
-	//	TData.GeneratedFaces.push_back(face);
-	//}
-
-	TData.NewShape = BaseShape.getShape();
-	//this->_TopoNamer.TrackGeneratedShape(this->_TopoNamer.GetNode(2), TData.NewShape, TData, "Generated Base Shape");
-	this->setShape(BaseShape.getShape());
-}
-
-void TopoShape::createFilletBaseShape2(const TopoShape& BaseShape) {
+void TopoShape::CreateFilletBaseShape(const TopoShape& BaseShape)
+{
 	// Node 2
 	this->_TopoNamer.AddNode("BaseShapes");
 	// Node 3
@@ -155,99 +135,104 @@ void TopoShape::createFilletBaseShape2(const TopoShape& BaseShape) {
 
 	TopTools_IndexedMapOfShape faces;
 	// TODO need to handle possible seam edges
-	TopExp::MapShapes(BaseShape.getShape(), TopAbs_FACE, faces);
-	for (int i = 1; i <= faces.Extent(); i++) {
+	TopExp::MapShapes(BaseShape.GetShape(), TopAbs_FACE, faces);
+	for (int i = 1; i <= faces.Extent(); i++)
+	{
 		TopoDS_Face face = TopoDS::Face(faces.FindKey(i));
 		TData.GeneratedFaces.push_back(face);
 	}
 
-	TData.NewShape = BaseShape.getShape();
+	TData.NewShape = BaseShape.GetShape();
 	this->_TopoNamer.TrackGeneratedShape(this->_TopoNamer.GetNode(2), TData.NewShape, TData, "Generated Base Shape");
-	this->setShape(BaseShape.getShape());
+	this->SetShape(BaseShape.GetShape());
 }
 
-BRepFilletAPI_MakeFillet TopoShape::createFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas) {
+BRepFilletAPI_MakeFillet TopoShape::CreateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas)
+{
 	// Make the fillets. NOTE: the edges should have already been 'selected' by
 	// calling TopoShape::selectEdge(s) by the caller.
-	BRepFilletAPI_MakeFillet mkFillet(BaseShape.getShape());
+	BRepFilletAPI_MakeFillet mkFillet(BaseShape.GetShape());
 
-	for (auto&& FData : FDatas) {
+	for (auto&& FData : FDatas)
+	{
 		TopoDS_Edge edge = this->_TopoNamer.GetSelectedEdge(FData.edgeTag);
 		mkFillet.Add(FData.radius1, FData.radius2, edge);
 	}
 
 	mkFillet.Build();
 
-	TopoData TFData = this->getFilletData(BaseShape, mkFillet);
+	TopoData TFData = this->GetFilletData(BaseShape, mkFillet);
 	TopoDS_Shape newShape = mkFillet.Shape();
 
 	//this->_TopoNamer.TrackGeneratedShape(this->_TopoNamer.GetNode(3), newShape, TFData, "Filleted Shape");	
-	this->_TopoNamer.TrackFilletOperation(BaseShape.getShape(), newShape, mkFillet);
-	this->setShape(newShape);
+	this->_TopoNamer.TrackFilletOperation(BaseShape.GetShape(), newShape, mkFillet);
+	this->SetShape(newShape);
 	std::clog << "-----Dumping topohistory after tracking fillet op" << std::endl;
 	std::clog << this->_TopoNamer.DeepDump2() << std::endl;
 	return mkFillet;
 }
 
-void TopoShape::updateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas) {
-	// Update the BaseShape topo history as appropriate
-	//this->_TopoNamer.AppendTopoHistorySimple("0:2", BaseShape.getTopoHelper());
-	//std::clog << "-----Dumping after Append" << std::endl;
-	//std::clog << this->_TopoNamer.DeepDump();
-	//std::clog << this->_TopoNamer.DFDump();
-
+void TopoShape::UpdateFillet(const TopoShape& BaseShape, const std::vector<FilletElement>& FDatas)
+{
 	// Make the fillets. NOTE: the edges should have already been 'selected' by
 	// calling TopoShape::selectEdge(s) by the caller.
-
-	//TopoDS_Shape localBaseShape = this->_TopoNamer.GetNodeShape("0:2");
-	//BRepFilletAPI_MakeFillet mkFillet(localBaseShape);
 
 	FilletData TFData;
 
 	try
 	{
-		BRepFilletAPI_MakeFillet mkFillet(BaseShape.getShape());
+		BRepFilletAPI_MakeFillet mkFillet(BaseShape.GetShape());
 
-		for (auto&& FData : FDatas) {
+		for (auto&& FData : FDatas)
+		{
 			TopoDS_Edge edge = this->_TopoNamer.GetSelectedEdge(FData.edgeTag);
 			mkFillet.Add(FData.radius1, FData.radius2, edge);
 		}
 
 		mkFillet.Build();
 
-		TFData = this->getFilletData(BaseShape, mkFillet);
+		TFData = this->GetFilletData(BaseShape, mkFillet);
 
-		TFData.OldShape = this->getShape();
+		TFData.OldShape = this->GetShape();
 		TFData.NewShape = mkFillet.Shape();
 	}
 	catch (Standard_Failure sf)
 	{
 		std::cout << "\x1B[31mFilleting error: " << sf << "\033[0m" << std::endl;
 		return;
-	}	
+	}
 
 	//this->_TopoNamer.TrackModifiedShape(this->_TopoNamer.GetNode(3), TFData.NewShape, TFData, "Filleted Shape");
 	this->_TopoNamer.TrackModifiedFilletBaseShape(TFData.NewShape);
 
-	this->setShape(TFData.NewShape);
+	this->SetShape(TFData.NewShape);
 
 	//std::clog << "-----Dumping topohistory after updateFillet" << std::endl;
 	//std::clog << this->_TopoNamer.DeepDump() << std::endl;
-	//return mkFillet;
 }
 
-std::string TopoShape::selectEdge(const int edgeID) {
+bool TopoShape::SelectEdge(const int edgeID, SelectionElement& outSelection)
+{
 	TopTools_IndexedMapOfShape listOfEdges;
 	TopExp::MapShapes(_Shape, TopAbs_EDGE, listOfEdges);
 
-	// Get the specific edge, I hope
-	const TopoDS_Edge& anEdge = TopoDS::Edge(listOfEdges.FindKey(edgeID));
+	try
+	{
+		// Get the specific edge, I hope
+		const TopoDS_Edge& anEdge = TopoDS::Edge(listOfEdges.FindKey(edgeID));
 
-	std::string edgeLabel = this->_TopoNamer.SelectEdge(anEdge, _Shape);
-	return edgeLabel;
+		std::string edgeLabel = this->_TopoNamer.SelectEdge(anEdge, _Shape);
+	}
+	catch (Standard_Failure sf)
+	{
+		std::cout << "Error: " << sf << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
-std::string TopoShape::selectEdge(const int edgeID, TNaming_Selector& selector, TDF_Label& selectionLabel)
+std::string TopoShape::SelectEdge(const int edgeID, TNaming_Selector& selector, TDF_Label& selectionLabel)
 {
 	TopTools_IndexedMapOfShape listOfEdges;
 	TopExp::MapShapes(_Shape, TopAbs_EDGE, listOfEdges);
@@ -261,11 +246,14 @@ std::string TopoShape::selectEdge(const int edgeID, TNaming_Selector& selector, 
 
 //-------------------- Private Methods--------------------
 
-std::vector<TopoDS_Face> TopoShape::getBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const {
+std::vector<TopoDS_Face> TopoShape::GetBoxFacesVector(BRepPrimAPI_MakeBox mkBox) const
+{
 	std::vector<TopoDS_Face> OutFaces = { mkBox.TopFace(), mkBox.BottomFace(), mkBox.LeftFace(), mkBox.RightFace(), mkBox.FrontFace(), mkBox.BackFace() };
 	return OutFaces;
 }
-TopTools_ListOfShape TopoShape::getBoxFaces(BRepPrimAPI_MakeBox mkBox) const {
+
+TopTools_ListOfShape TopoShape::GetBoxFaces(BRepPrimAPI_MakeBox mkBox) const
+{
 	TopTools_ListOfShape OutFaces;
 	OutFaces.Append(mkBox.TopFace());
 	OutFaces.Append(mkBox.BottomFace());
@@ -276,45 +264,53 @@ TopTools_ListOfShape TopoShape::getBoxFaces(BRepPrimAPI_MakeBox mkBox) const {
 	return OutFaces;
 }
 
-FilletData TopoShape::getFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const {
+FilletData TopoShape::GetFilletData(const TopoShape& BaseShape, BRepFilletAPI_MakeFillet& mkFillet) const
+{
 	// Get the data we need for topo history
 	FilletData TFData;
 
 	TopTools_IndexedMapOfShape faces;
 	// TODO need to handle possible seam edges
 	// TODO need to pull BaseShape from topo tree
-	TopExp::MapShapes(BaseShape.getShape(), TopAbs_FACE, faces);
-	for (int i = 1; i <= faces.Extent(); i++) {
+	TopExp::MapShapes(BaseShape.GetShape(), TopAbs_FACE, faces);
+	for (int i = 1; i <= faces.Extent(); i++)
+	{
 		TopoDS_Face face = TopoDS::Face(faces.FindKey(i));
 		TopTools_ListOfShape modified = mkFillet.Modified(face);
-		if (modified.Extent() == 1) {
+		if (modified.Extent() == 1)
+		{
 			TopoDS_Face newFace = TopoDS::Face(modified.First());
 			TFData.ModifiedFaces.push_back({ face, newFace });
 		}
-		else if (modified.Extent() != 0) {
+		else if (modified.Extent() != 0)
+		{
 			throw std::runtime_error("Fillet should only produce a single modified face per face, or none");
 		}
 	}
 
 	TopTools_IndexedMapOfShape edges;
-	TopExp::MapShapes(BaseShape.getShape(), TopAbs_EDGE, edges);
-	for (int i = 1; i <= edges.Extent(); i++) {
+	TopExp::MapShapes(BaseShape.GetShape(), TopAbs_EDGE, edges);
+	for (int i = 1; i <= edges.Extent(); i++)
+	{
 		TopoDS_Edge edge = TopoDS::Edge(edges.FindKey(i));
 		TopTools_ListOfShape generated = mkFillet.Generated(edge);
 		TopTools_ListIteratorOfListOfShape genIt(generated);
-		for (; genIt.More(); genIt.Next()) {
+		for (; genIt.More(); genIt.Next())
+		{
 			TopoDS_Face genFace = TopoDS::Face(genIt.Value());
 			TFData.GeneratedFacesFromEdge.push_back({ edge, genFace });
 		}
 	}
 
 	TopTools_IndexedMapOfShape vertexes;
-	TopExp::MapShapes(BaseShape.getShape(), TopAbs_VERTEX, vertexes);
-	for (int i = 1; i <= vertexes.Extent(); i++) {
+	TopExp::MapShapes(BaseShape.GetShape(), TopAbs_VERTEX, vertexes);
+	for (int i = 1; i <= vertexes.Extent(); i++)
+	{
 		TopoDS_Vertex vertex = TopoDS::Vertex(vertexes.FindKey(i));
 		TopTools_ListOfShape generated = mkFillet.Generated(vertex);
 		TopTools_ListIteratorOfListOfShape genIt(generated);
-		for (; genIt.More(); genIt.Next()) {
+		for (; genIt.More(); genIt.Next())
+		{
 			TopoDS_Face genFace = TopoDS::Face(genIt.Value());
 			TFData.GeneratedFacesFromVertex.push_back({ vertex, genFace });
 		}
